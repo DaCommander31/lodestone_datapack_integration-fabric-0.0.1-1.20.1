@@ -47,7 +47,6 @@ public class LodestoneDatapackInterpreter {
     private static final Gson GSON = new Gson();
 
     private static PlayerEntity player = null;
-    private static World world;
 
     public static void initialize() {
         ArgumentTypeRegistry.registerArgumentType(
@@ -66,11 +65,6 @@ public class LodestoneDatapackInterpreter {
             player = minecraftClient.player;
             }
         );
-        ClientTickEvents.START_WORLD_TICK.register((clientWorld) -> {
-            if (player != null) {
-                world = player.getWorld();
-                }
-        });
 
         // Registering command
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> registerLodestoneCommand(dispatcher));
@@ -202,15 +196,19 @@ public class LodestoneDatapackInterpreter {
             String namespace = parts[0];
             String fileName = parts[1] + ".json";
 
-            // Load JSON data
             JsonObject jsonData = loadJsonData(namespace + ":" + fileName, source);
             if (jsonData == null) {
                 return 0; // Return failure if JSON loading fails
             }
 
-            // Spawn the particle using the parsed JSON
-            spawnParticleFromJson(source, pos, jsonData, name);
-            return 1;
+            // Load JSON data
+            for (ServerPlayerEntity serverPlayerEntity : viewers) {
+                // Spawn the particle using the parsed JSON
+                spawnParticleFromJson(source, pos, jsonData, name, serverPlayerEntity);
+                return 1;
+            }
+
+            return 0;
         } catch (Exception e) {
             source.sendError(Text.literal("Error processing command: " + e.getMessage()));
             return 0;
@@ -256,8 +254,7 @@ public class LodestoneDatapackInterpreter {
         try {
             if (Files.exists(jsonFilePath)) {
                 String jsonContent = Files.readString(jsonFilePath); // Read the content of the JSON file
-                JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject(); // Parse JSON content
-                return jsonObject;
+                return JsonParser.parseString(jsonContent).getAsJsonObject();
             } else {
                 source.sendError(Text.literal("JSON file not found at: " + jsonFilePath));
                 return null;
@@ -291,7 +288,7 @@ public class LodestoneDatapackInterpreter {
         return null;
     }
 
-    private static void spawnParticleFromJson(ServerCommandSource source, Vec3d spawnPos, JsonObject jsonData, String particleType) {
+    private static void spawnParticleFromJson(ServerCommandSource source, Vec3d spawnPos, JsonObject jsonData, String particleType, ServerPlayerEntity player) {
         boolean forceSpawn = false;
         boolean culling = false;
         Color startColor;
@@ -508,7 +505,7 @@ public class LodestoneDatapackInterpreter {
             }
         }
 
-        builder.spawn(world, spawnPos.x, spawnPos.y, spawnPos.z);
+        builder.spawn(player.getWorld(), spawnPos.x, spawnPos.y, spawnPos.z);
         source.sendFeedback(() -> Text.literal("Displaying Lodestone particle " + particleType), true);
     }
 
