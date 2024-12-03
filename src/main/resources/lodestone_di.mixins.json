@@ -1,0 +1,8 @@
+{
+	"required": true,
+	"package": "net.dacommander31.lodestone_di.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
